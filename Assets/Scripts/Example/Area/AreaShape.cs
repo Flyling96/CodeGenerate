@@ -18,7 +18,7 @@ public partial class AreaShape : ISerialization
     public ShapeType m_Type = ShapeType.Sphere;
     [BinarySerializedField]
     public Vector3 m_Center;
-
+    [BinarySerializedField]
     public List<Vector3> m_ShapeData = new List<Vector3>();
     //Sphere,0  radius
     //Box,0 size
