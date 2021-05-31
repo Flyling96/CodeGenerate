@@ -101,20 +101,23 @@ public class SerializationCodeGenerate
             {
                 using (FileStream fileStream = new FileStream(path, FileMode.Open))
                 {
-                    startIndex = (int)fileStream.Length;    
+                    startIndex = (int)fileStream.Length;
+                    byte[] writerBytes = Encoding.UTF8.GetBytes(classCode);
+                    //fileStream.Seek(startIndex, SeekOrigin.Begin);
+                    fileStream.Position = startIndex - 3;
+                    fileStream.Write(writerBytes, 0, writerBytes.Length);
                 }
             }
             else
             {
                 classCode = string.Format("{0}\n{1}", HeadStr, classCode);
+                using (FileStream fileStream = new FileStream(path, FileMode.OpenOrCreate))
+                {
+                    byte[] writerBytes = Encoding.UTF8.GetBytes(classCode);
+                    fileStream.Write(writerBytes, startIndex, writerBytes.Length);
+                }
             }
 
-            using(FileStream fileStream = new FileStream(path,FileMode.OpenOrCreate))
-            {
-                byte[] writerBytes = Encoding.UTF8.GetBytes(classCode);
-                fileStream.Write(writerBytes,startIndex,writerBytes.Length);
-                fileStream.Close();
-            }
         }
 
     }
