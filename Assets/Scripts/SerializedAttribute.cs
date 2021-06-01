@@ -7,5 +7,10 @@ using System;
 [AttributeUsage(AttributeTargets.Field)]
 public class BinarySerializedFieldAttribute : Attribute
 {
+}
+
+[AttributeUsage(AttributeTargets.Class)]
+public class BinarySerializedClassAttribute: Attribute
+{
 
 }

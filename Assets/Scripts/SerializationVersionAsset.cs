@@ -10,7 +10,8 @@ public class SerializationCodeVersionAsset:BaseSingleSetting<SerializationCodeVe
     public struct VersionStruct
     {
         public int m_Version;
-        public string m_Variables;
+        public string m_VariableNames;
+        public string m_VariableTypes;
     }
     [Serializable]
     public struct VersionListStruct

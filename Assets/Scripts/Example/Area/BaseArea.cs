@@ -4,7 +4,8 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-public partial class BaseArea : ISerialization
+[BinarySerializedClass]
+public partial class BaseArea
 {
     [BinarySerializedField]
     public AreaShape m_Shape;
@@ -70,21 +71,5 @@ public partial class BaseArea : ISerialization
     }
 
 
-    public virtual void Deserialize(BinaryReader reader)
-    {
-        m_Shape = new AreaShape();
-        m_Shape.Deserialize(reader);
-    }
-
 }
 
-#if UNITY_EDITOR
-[Serializable]
-public partial class BaseArea
-{
-    public virtual void Serialize(BinaryWriter writer)
-    {
-        m_Shape.Serialize(writer);
-    }
-}
-#endif

@@ -4,9 +4,8 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-
-
-public partial class AreaShape : ISerialization
+[BinarySerializedClass]
+public partial class AreaShape
 {
     public enum ShapeType
     {
@@ -18,7 +17,7 @@ public partial class AreaShape : ISerialization
     public ShapeType m_Type = ShapeType.Sphere;
     [BinarySerializedField]
     public Vector3 m_Center;
-    [BinarySerializedField]
+
     public List<Vector3> m_ShapeData = new List<Vector3>();
     //Sphere,0  radius
     //Box,0 size
@@ -79,32 +78,5 @@ public partial class AreaShape : ISerialization
     }
 
 
-    public void Deserialize(BinaryReader reader)
-    {
-        m_Type = (ShapeType)reader.ReadInt32();
-        m_Center = reader.ReadVector3();
-        int count = reader.ReadInt32();
-        m_ShapeData.Clear();
-        for (int i = 0; i < count; i++)
-        {
-            m_ShapeData.Add(reader.ReadVector3());
-        }
-    }
 }
 
-#if UNITY_EDITOR
-[Serializable]
-public partial class AreaShape
-{
-    public void Serialize(BinaryWriter writer)
-    {
-        writer.Write((int)m_Type);
-        writer.WriteVector(m_Center);
-        writer.Write(m_ShapeData.Count);
-        for (int i = 0; i < m_ShapeData.Count; i++)
-        {
-            writer.WriteVector(m_ShapeData[i]);
-        }
-    }
-}
-#endif
