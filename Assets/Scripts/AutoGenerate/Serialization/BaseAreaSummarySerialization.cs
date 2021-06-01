@@ -19,10 +19,10 @@ public partial class BaseArea: ISerialization
 	public virtual void Serialize(BinaryWriter writer)
 	{
 		int version = 10000;
-		SerializationCodeVersionAsset.VersionListStruct versionList;
+		SerializationCodeVersionAsset.TypeInfo versionList;
 		if (SerializationCodeVersionAsset.Instance.m_SerializationCodeVersionDic.TryGetValue(GetType().FullName,out versionList))
 		{
-			version = versionList.m_Versions[versionList.m_Versions.Count - 1].m_Version;
+			version = versionList.m_SerializationVersions[versionList.m_SerializationVersions.Count - 1].m_Version;
 		}
 		writer.Write(version);
 		switch(version)

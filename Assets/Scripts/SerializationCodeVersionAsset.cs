@@ -14,13 +14,14 @@ public class SerializationCodeVersionAsset:BaseSingleSetting<SerializationCodeVe
         public string m_VariableTypes;
     }
     [Serializable]
-    public struct VersionListStruct
+    public class TypeInfo
     {
-        public List<VersionStruct> m_Versions;
+        public List<VersionStruct> m_SerializationVersions;
+        public string m_ResetVarialbleNames;
     }
 
     [Serializable]
-    public class SerializedDictionaryVersion : SerializedDictionary<string, VersionListStruct> { }
+    public class SerializedDictionaryVersion : SerializedDictionary<string, TypeInfo> { }
 
     public SerializedDictionaryVersion m_SerializationCodeVersionDic = new SerializedDictionaryVersion();
 

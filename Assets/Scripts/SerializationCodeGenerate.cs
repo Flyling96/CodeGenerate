@@ -19,7 +19,6 @@ public class SerializationCodeGenerate
     const string EndIfMacro = "#endif\n";
 
     const string HeadStr = "using System;\n"+
-    "using System.Collections;\n" +
     "using System.Collections.Generic;\n"+
     "using System.IO;\n"+
     "using UnityEngine;\n";
@@ -92,7 +91,7 @@ public class SerializationCodeGenerate
     const string SerializeCaseFunctionStr = "\t\t\tcase {0}:Serialize_{0}(writer);break;\n";
 
 
-    [MenuItem("SerializationCode/Generate")]
+    [MenuItem("GenerateCode/Serialization")]
     public static void GenerateCode()
     {
         Type[] types = AppDomain.CurrentDomain.GetAssemblies()
@@ -150,16 +149,16 @@ public class SerializationCodeGenerate
           Select(x => (Name:x.Name, Attribute:x.GetCustomAttribute(typeof(BinarySerializedFieldAttribute)) as BinarySerializedFieldAttribute));
 
         var dic = SerializationCodeVersionAsset.Instance.m_SerializationCodeVersionDic;
-        SerializationCodeVersionAsset.VersionListStruct versionList;
+        SerializationCodeVersionAsset.TypeInfo versionList;
         if (dic.TryGetValue(classType.FullName, out versionList))
         {
-            if (versionList.m_Versions == null || versionList.m_Versions.Count < 2)
+            if (versionList.m_SerializationVersions == null || versionList.m_SerializationVersions.Count < 2)
             {
                 return;
             }
 
-            string[] preFieldNames = versionList.m_Versions[versionList.m_Versions.Count - 2].m_VariableNames.Split(';');
-            string[] preFieldTypeStrings = versionList.m_Versions[versionList.m_Versions.Count - 2].m_VariableTypes.Split(';');
+            string[] preFieldNames = versionList.m_SerializationVersions[versionList.m_SerializationVersions.Count - 2].m_VariableNames.Split(';');
+            string[] preFieldTypeStrings = versionList.m_SerializationVersions[versionList.m_SerializationVersions.Count - 2].m_VariableTypes.Split(';');
             Type[] preFieldTypes = new Type[preFieldTypeStrings.Length];
             for(int i =0; i< preFieldTypeStrings.Length;i++)
             {
@@ -167,7 +166,7 @@ public class SerializationCodeGenerate
                 preFieldTypes[i] = Type.GetType(typeString);
 
             }
-            string[] nowFieldNames = versionList.m_Versions[versionList.m_Versions.Count - 1].m_VariableNames.Split(';');
+            string[] nowFieldNames = versionList.m_SerializationVersions[versionList.m_SerializationVersions.Count - 1].m_VariableNames.Split(';');
 
             using (FileStream fileStream = new FileStream(path, FileMode.Open))
             {
@@ -264,7 +263,7 @@ public class SerializationCodeGenerate
 
     private static (bool,int) CheckVersion(Type classType)
     {
-        SerializationCodeVersionAsset.VersionListStruct versionList;
+        SerializationCodeVersionAsset.TypeInfo typeInfo;
         var dic = SerializationCodeVersionAsset.Instance.m_SerializationCodeVersionDic;
         var binaryFields = classType.GetFields(BindingFlags.DeclaredOnly | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public)
             .Where(x => x.GetCustomAttribute(typeof(BinarySerializedFieldAttribute)) != null);
@@ -285,24 +284,24 @@ public class SerializationCodeGenerate
 
         int versionIndex = 10000;
         bool needNew = false;
-        if (dic.TryGetValue(classType.FullName, out versionList))
+        if (dic.TryGetValue(classType.FullName, out typeInfo))
         {
-            if(versionList.m_Versions == null || versionList.m_Versions.Count < 1 )
+            if(typeInfo.m_SerializationVersions == null || typeInfo.m_SerializationVersions.Count < 1 )
             {
-                if(versionList.m_Versions == null)
+                if(typeInfo.m_SerializationVersions == null)
                 {
-                    versionList.m_Versions = new List<SerializationCodeVersionAsset.VersionStruct>();
+                    typeInfo.m_SerializationVersions = new List<SerializationCodeVersionAsset.VersionStruct>();
                 }
                 SerializationCodeVersionAsset.VersionStruct version;
                 version.m_Version = versionIndex;
                 version.m_VariableNames = variableNameStr;
                 version.m_VariableTypes = variableTypeStr;
-                versionList.m_Versions.Add(version);
+                typeInfo.m_SerializationVersions.Add(version);
                 needNew = true;
             }
             else
             {
-                var version = versionList.m_Versions[versionList.m_Versions.Count - 1];
+                var version = typeInfo.m_SerializationVersions[typeInfo.m_SerializationVersions.Count - 1];
                 if(!string.Equals(version.m_VariableNames,variableNameStr))
                 {
                     SerializationCodeVersionAsset.VersionStruct newVersion;
@@ -310,21 +309,22 @@ public class SerializationCodeGenerate
                     newVersion.m_Version = versionIndex;
                     newVersion.m_VariableNames = variableNameStr;
                     newVersion.m_VariableTypes = variableTypeStr;
-                    versionList.m_Versions.Add(newVersion);
+                    typeInfo.m_SerializationVersions.Add(newVersion);
                     needNew = true;
                 }
             }
         }
         else
         {
-            SerializationCodeVersionAsset.VersionListStruct versionListStruct;
-            versionListStruct.m_Versions = new List<SerializationCodeVersionAsset.VersionStruct>();
+            typeInfo = new SerializationCodeVersionAsset.TypeInfo();
+            typeInfo.m_SerializationVersions = new List<SerializationCodeVersionAsset.VersionStruct>();
             SerializationCodeVersionAsset.VersionStruct version;
             version.m_Version = versionIndex;
             version.m_VariableNames = variableNameStr;
             version.m_VariableTypes = variableTypeStr;
-            versionListStruct.m_Versions.Add(version);
-            dic.Add(classType.FullName, versionListStruct);
+            typeInfo.m_SerializationVersions.Add(version);
+            typeInfo.m_ResetVarialbleNames = string.Empty;
+            dic.Add(classType.FullName, typeInfo);
             needNew = true;
         }
 
@@ -412,12 +412,12 @@ public class SerializationCodeGenerate
         codeStr.Append(DeserializeVersionStr);
         codeStr.Append(SwitchVersionStr);
 
-        SerializationCodeVersionAsset.VersionListStruct versionList;
-        if (SerializationCodeVersionAsset.Instance.m_SerializationCodeVersionDic.TryGetValue(classType.FullName, out versionList))
+        SerializationCodeVersionAsset.TypeInfo typeInfo;
+        if (SerializationCodeVersionAsset.Instance.m_SerializationCodeVersionDic.TryGetValue(classType.FullName, out typeInfo))
         {
-            for(int i =0; i< versionList.m_Versions.Count;i++)
+            for(int i =0; i< typeInfo.m_SerializationVersions.Count;i++)
             {
-                codeStr.Append(string.Format(DeserializeCaseFunctionStr, versionList.m_Versions[i].m_Version));
+                codeStr.Append(string.Format(DeserializeCaseFunctionStr, typeInfo.m_SerializationVersions[i].m_Version));
             }
         }
 
@@ -433,11 +433,11 @@ public class SerializationCodeGenerate
         }
         codeStr.Append(SerializeVersionStr);
         codeStr.Append(SwitchVersionStr);
-        if (versionList.m_Versions != null)
+        if (typeInfo.m_SerializationVersions != null)
         {
-            for (int i = 0; i < versionList.m_Versions.Count; i++)
+            for (int i = 0; i < typeInfo.m_SerializationVersions.Count; i++)
             {
-                codeStr.Append(string.Format(SerializeCaseFunctionStr, versionList.m_Versions[i].m_Version));
+                codeStr.Append(string.Format(SerializeCaseFunctionStr, typeInfo.m_SerializationVersions[i].m_Version));
             }
         }
         codeStr.Append("\t\t}\n");
