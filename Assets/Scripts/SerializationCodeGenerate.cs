@@ -328,6 +328,12 @@ public class SerializationCodeGenerate
             needNew = true;
         }
 
+        if (needNew)
+        {
+            EditorUtility.SetDirty(SerializationCodeVersionAsset.Instance);
+            AssetDatabase.SaveAssets();
+        }
+
         return (needNew, versionIndex);
 
     }

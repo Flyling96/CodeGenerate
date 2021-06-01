@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEditor;
 
 [System.Serializable]
 public class SerializedDictionary<TKey,TValue>:Dictionary<TKey, TValue>,ISerializationCallbackReceiver
@@ -20,6 +21,7 @@ public class SerializedDictionary<TKey,TValue>:Dictionary<TKey, TValue>,ISeriali
             m_Keys.Add(pair.Key);
             m_Values.Add(pair.Value);
         }
+
     }
 
     //Load the dictionary from lists
