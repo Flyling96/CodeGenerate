@@ -7,7 +7,7 @@ using UnityEngine;
 [BinarySerializedClass]
 public partial class BaseArea
 {
-    [BinarySerializedField]
+    [BinarySerialized]
     public AreaShape m_Shape;
     protected List<long> m_InSideActorIdList = new List<long>();
 

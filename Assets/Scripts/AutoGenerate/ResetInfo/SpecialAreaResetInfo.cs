@@ -16,11 +16,13 @@ public partial class SpecialArea: IResetInfo
 		m_InitInfos.Clear();
 		m_InitInfos.Capacity = 1;
 		m_InitInfos.Add(AreaIDs);
+		m_InitInfos.Add(QuaternionTest);
 	}
 
 	public void ResetInfos()
 	{
 		AreaIDs = (Int32[])m_InitInfos[0];
+		QuaternionTest = (Quaternion)m_InitInfos[1];
 	}
 
 }

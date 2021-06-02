@@ -13,9 +13,9 @@ public partial class AreaShape
         Box,
         Prism,
     }
-    [BinarySerializedField, CanReset]
+    [BinarySerialized, CanReset]
     public ShapeType m_Type = ShapeType.Sphere;
-    [BinarySerializedField, CanReset]
+    [BinarySerialized, CanReset]
     public Vector3 m_Center;
 
     public List<Vector3> m_ShapeData = new List<Vector3>();

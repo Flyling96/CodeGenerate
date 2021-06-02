@@ -69,6 +69,16 @@ public static class SerializationBinaryHelper
         }
     }
 
+    public static Quaternion ReadQuaternion(this BinaryReader reader)
+    {
+        Quaternion res = new Quaternion();
+        res.x = reader.ReadSingle();
+        res.y = reader.ReadSingle();
+        res.z = reader.ReadSingle();
+        res.w = reader.ReadSingle();
+        return res;
+    }
+
     public static Vector3 ReadVector3(this BinaryReader reader)
     {
         Vector3 res = new Vector3();
@@ -97,6 +107,14 @@ public static class SerializationBinaryHelper
     {
         writer.Write(vector.x);
         writer.Write(vector.y);
+    }
+
+    public static void WriteQuaternion(this BinaryWriter writer,Quaternion rotation)
+    {
+        writer.Write(rotation.x);
+        writer.Write(rotation.y);
+        writer.Write(rotation.z);
+        writer.Write(rotation.w);
     }
 
 }

@@ -4,8 +4,8 @@ using UnityEngine;
 using System;
 
 
-[AttributeUsage(AttributeTargets.Field)]
-public class BinarySerializedFieldAttribute : Attribute
+[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
+public class BinarySerializedAttribute : Attribute
 {
 }
 

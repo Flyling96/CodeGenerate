@@ -52,6 +52,11 @@ public class ResetInfoCodeGenerate
     {
         if(CheckVersion(classType))
         {
+            string dicPath = string.Format("{0}{1}", Application.dataPath, SavePath);
+            if (!Directory.Exists(dicPath))
+            {
+                Directory.CreateDirectory(dicPath);
+            }
             string classCode = string.Format("{0}\n{1}", HeadStr, ClassTitle);
             string functionCode = GenerateResetInfoFunctionCode(classType);
             classCode = string.Format(classCode, classType.Name,functionCode);
@@ -73,15 +78,24 @@ public class ResetInfoCodeGenerate
         var resetInfoFields = classType.GetFields(BindingFlags.DeclaredOnly | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public)
             .Where(x => x.GetCustomAttribute(typeof(CanResetAttribute)) != null);
 
-        if(resetInfoFields.Count() < 1)
+        var resetInfoProperties = classType.GetFields(BindingFlags.DeclaredOnly | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public)
+            .Where(x => x.GetCustomAttribute(typeof(CanResetAttribute)) != null);
+
+        if (resetInfoFields.Count() < 1 && resetInfoProperties.Count() < 1)
         {
             return false;
         }
 
         StringBuilder resetVariableNames = new StringBuilder();
-        foreach (var restInfoField in resetInfoFields)
+        foreach (var resetInfoField in resetInfoFields)
         {
-            resetVariableNames.Append(restInfoField.Name);
+            resetVariableNames.Append(resetInfoField.Name);
+            resetVariableNames.Append(';');
+        }
+
+        foreach (var resetInfoProperty in resetInfoProperties)
+        {
+            resetVariableNames.Append(resetInfoProperty.Name);
             resetVariableNames.Append(';');
         }
 
@@ -120,6 +134,8 @@ public class ResetInfoCodeGenerate
 
         var resetInfoFields = classType.GetFields(BindingFlags.DeclaredOnly | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public)
           .Where(x => x.GetCustomAttribute(typeof(CanResetAttribute)) != null);
+        var resetInfoProperties = classType.GetProperties(BindingFlags.DeclaredOnly | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public)
+          .Where(x => x.GetCustomAttribute(typeof(CanResetAttribute)) != null);
 
         codeStr.Append(PrivateInitInfosField);
         codeStr.Append(InitInfosProperty);
@@ -133,6 +149,11 @@ public class ResetInfoCodeGenerate
             codeStr.Append(string.Format(RecordInfoSingleStr, resetInfoField.Name));
         }
 
+        foreach(var resetInfoProperty in resetInfoProperties)
+        {
+            codeStr.Append(string.Format(RecordInfoSingleStr, resetInfoProperty.Name));
+        }
+
         codeStr.Append("\t}\n\n");
 
         codeStr.Append(ResetInfoFunctionTitle);
@@ -141,6 +162,11 @@ public class ResetInfoCodeGenerate
         foreach (var resetInfoField in resetInfoFields)
         {
             codeStr.Append(string.Format(ResetInfoSingleStr, resetInfoField.Name, resetInfoField.FieldType.Name, index++));
+        }
+
+        foreach (var resetInfoProperty in resetInfoProperties)
+        {
+            codeStr.Append(string.Format(ResetInfoSingleStr, resetInfoProperty.Name, resetInfoProperty.PropertyType.Name, index++));
         }
 
         codeStr.Append("\t}\n\n");

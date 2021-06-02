@@ -38,6 +38,7 @@ public class SerializationCodeGenerate
     const string DeserializeStringFieldStr = "\t\t{0} = reader.ReadString();\n";
     const string DeserializeVector3FieldStr = "\t\t{0} = reader.ReadVector3();\n";
     const string DeserializeVector2FieldStr = "\t\t{0} = reader.ReadVector2();\n";
+    const string DeserializeQuaternionFieldStr = "\t\t{0} = reader.ReadQuaternion();\n";
     const string DeserializeInterfaceFieldStr = "\t\t{0} = new {1}();\n\t\t{0}.Deserialize(reader);\n";
     const string DeleteDeserializeInterfaceFieldStr = "\t\tvar t_{0} = new {1}();\n\t\t{0}.Deserialize(reader);\n";
 
@@ -68,6 +69,7 @@ public class SerializationCodeGenerate
     //const string SerializeBaseTypeFieldStr = "\t\tSerializationBinaryHelper.WriteBinary(ref {0},typeof({0}),resder);\n";
     const string SerializeBaseTypeFieldStr = "\t\twriter.Write({0});\n";
     const string SerializeVectorTypeFieldStr = "\t\twriter.WriteVector({0});\n";
+    const string SerializeQuaternionTypeFieldStr = "\t\twriter.WriteQuaternion({0});\n";
     const string SerializeEnumFieldStr = "\t\twriter.Write((int){0});\n";
     const string SerializeInterfaceFieldStr = "\t\t{0}.Serialize(writer);\n";
     const string DeleteSerializeInterfaceFieldStr = "\t\tvar t_{0} = new {1}();\n\t\t{0}.Serialize(writer);\n";
@@ -83,9 +85,9 @@ public class SerializationCodeGenerate
         "\t\t{{\n \t{1} \t\t}}\n";
 
     const string SerializeVersionStr = "\t\tint version = 10000;\n"+
-        "\t\tSerializationCodeVersionAsset.VersionListStruct versionList;\n" +
-        "\t\tif (SerializationCodeVersionAsset.Instance.m_SerializationCodeVersionDic.TryGetValue(GetType().FullName,out versionList))\n\t\t{\n" +
-        "\t\t\tversion = versionList.m_Versions[versionList.m_Versions.Count - 1].m_Version;\n\t\t}\n" +
+        "\t\tSerializationCodeVersionAsset.TypeInfo typeInfo;\n" +
+        "\t\tif(SerializationCodeVersionAsset.Instance.m_SerializationCodeVersionDic.TryGetValue(GetType().FullName,out typeInfo))\n\t\t{\n" +
+        "\t\t\tversion = typeInfo.m_SerializationVersions[typeInfo.m_SerializationVersions.Count - 1].m_Version;\n\t\t}\n" +
         "\t\twriter.Write(version);\n";
 
     const string SerializeCaseFunctionStr = "\t\t\tcase {0}:Serialize_{0}(writer);break;\n";
@@ -111,6 +113,11 @@ public class SerializationCodeGenerate
         var versionInfo = CheckVersion(classType);
         if(versionInfo.Item1)
         {
+            string dicPath = string.Format("{0}{1}", Application.dataPath, SavePath);
+            if(!Directory.Exists(dicPath))
+            {
+                Directory.CreateDirectory(dicPath);
+            }
             DeleteFieldCheck(classType);
             string classCode = GenerateSerializationFunctionCode(classType, versionInfo.Item2);
             string path = string.Format("{0}{1}{2}{3}.cs", Application.dataPath, SavePath, classType.Name,"Serialization");
@@ -144,10 +151,6 @@ public class SerializationCodeGenerate
     {
         string path = string.Format("{0}{1}{2}{3}.cs", Application.dataPath, SavePath, classType.Name, "Serialization");
 
-        var binaryFieldsAttribute = classType.GetFields(BindingFlags.DeclaredOnly | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public)
-          .Where(x => x.GetCustomAttribute(typeof(BinarySerializedFieldAttribute))!= null).
-          Select(x => (Name:x.Name, Attribute:x.GetCustomAttribute(typeof(BinarySerializedFieldAttribute)) as BinarySerializedFieldAttribute));
-
         var dic = SerializationCodeVersionAsset.Instance.m_SerializationCodeVersionDic;
         SerializationCodeVersionAsset.TypeInfo versionList;
         if (dic.TryGetValue(classType.FullName, out versionList))
@@ -157,16 +160,16 @@ public class SerializationCodeGenerate
                 return;
             }
 
-            string[] preFieldNames = versionList.m_SerializationVersions[versionList.m_SerializationVersions.Count - 2].m_VariableNames.Split(';');
-            string[] preFieldTypeStrings = versionList.m_SerializationVersions[versionList.m_SerializationVersions.Count - 2].m_VariableTypes.Split(';');
-            Type[] preFieldTypes = new Type[preFieldTypeStrings.Length];
-            for(int i =0; i< preFieldTypeStrings.Length;i++)
+            string[] preVariableNames = versionList.m_SerializationVersions[versionList.m_SerializationVersions.Count - 2].m_VariableNames.Split(';');
+            string[] preVariableTypeStrings = versionList.m_SerializationVersions[versionList.m_SerializationVersions.Count - 2].m_VariableTypes.Split(';');
+            Type[] preVariableTypes = new Type[preVariableTypeStrings.Length];
+            for(int i =0; i< preVariableTypeStrings.Length;i++)
             {
-                var typeString = preFieldTypeStrings[i];
-                preFieldTypes[i] = Type.GetType(typeString);
+                var typeString = preVariableTypeStrings[i];
+                preVariableTypes[i] = Type.GetType(typeString);
 
             }
-            string[] nowFieldNames = versionList.m_SerializationVersions[versionList.m_SerializationVersions.Count - 1].m_VariableNames.Split(';');
+            string[] nowVariableNames = versionList.m_SerializationVersions[versionList.m_SerializationVersions.Count - 1].m_VariableNames.Split(';');
 
             using (FileStream fileStream = new FileStream(path, FileMode.Open))
             {
@@ -175,13 +178,13 @@ public class SerializationCodeGenerate
                 var codeStr = Encoding.UTF8.GetString(readByte);
 
                 List<string> deleteFields = new List<string>();
-                for (int i = 0; i < preFieldNames.Length; i++)
+                for (int i = 0; i < preVariableNames.Length; i++)
                 {
-                    var preFieldName = preFieldNames[i];
-                    if (!nowFieldNames.Contains(preFieldName))
+                    var preFieldName = preVariableNames[i];
+                    if (!nowVariableNames.Contains(preFieldName))
                     {
-                        var preFieldType = preFieldTypes[i];
-                        if (preFieldType.GetCustomAttribute(typeof(BinarySerializedFieldAttribute)) != null)
+                        var preFieldType = preVariableTypes[i];
+                        if (preFieldType.GetCustomAttribute(typeof(BinarySerializedAttribute)) != null)
                         {
                             string originStr = string.Format(DeserializeInterfaceFieldStr, preFieldName, preFieldType);
                             string replaceStr = string.Format(DeleteDeserializeInterfaceFieldStr, preFieldName, preFieldType);
@@ -266,7 +269,9 @@ public class SerializationCodeGenerate
         SerializationCodeVersionAsset.TypeInfo typeInfo;
         var dic = SerializationCodeVersionAsset.Instance.m_SerializationCodeVersionDic;
         var binaryFields = classType.GetFields(BindingFlags.DeclaredOnly | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public)
-            .Where(x => x.GetCustomAttribute(typeof(BinarySerializedFieldAttribute)) != null);
+            .Where(x => x.GetCustomAttribute(typeof(BinarySerializedAttribute)) != null);
+        var binaryProperties = classType.GetProperties(BindingFlags.DeclaredOnly | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public)
+            .Where(x => x.GetCustomAttribute(typeof(BinarySerializedAttribute)) != null);
 
         StringBuilder variableNames = new StringBuilder();
         StringBuilder variableTypes = new StringBuilder();
@@ -277,6 +282,15 @@ public class SerializationCodeGenerate
             variableTypes.Append(binaryField.FieldType.FullName);
             variableTypes.Append(';');
         }
+
+        foreach(var binaryProperty in binaryProperties)
+        {
+            variableNames.Append(binaryProperty.Name);
+            variableNames.Append(';');
+            variableTypes.Append(binaryProperty.PropertyType.FullName);
+            variableTypes.Append(';');
+        }
+
         string variableNameStr = variableNames.ToString();
         variableNameStr = variableNameStr.Remove(variableNameStr.Length - 1);
         string variableTypeStr = variableTypes.ToString();
@@ -346,23 +360,42 @@ public class SerializationCodeGenerate
         codeStr.Append(string.Format(DeserializeFunctionTitle, version));
         codeStr.Append("\n\t{\n");
 
-        var binaryFields = classType.GetFields(BindingFlags.DeclaredOnly | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public).Where(x => x.GetCustomAttribute(typeof(BinarySerializedFieldAttribute)) != null);
+        var binaryFields = classType.GetFields(BindingFlags.DeclaredOnly | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public).Where(x => x.GetCustomAttribute(typeof(BinarySerializedAttribute)) != null);
         foreach(var binaryField in binaryFields)
         {
             Type fieldType = binaryField.FieldType;
             if (fieldType.IsArray)
             {
-                codeStr.Append(DeserializeArrayField(binaryField.Name, binaryField.FieldType.GetElementType())) ;
+                codeStr.Append(DeserializeArrayField(binaryField.Name, fieldType.GetElementType())) ;
             }
             else if(typeof(IList).IsAssignableFrom(fieldType))
             {
-                codeStr.Append(DeserializeListField(binaryField.Name, binaryField.FieldType.GetGenericArguments()[0]));
+                codeStr.Append(DeserializeListField(binaryField.Name, fieldType.GetGenericArguments()[0]));
             }
             else
             {
                 codeStr.Append(DeserializeSingleField(binaryField.Name, fieldType));
             }
         }
+
+        var binaryProperties = classType.GetProperties(BindingFlags.DeclaredOnly | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public).Where(x => x.GetCustomAttribute(typeof(BinarySerializedAttribute)) != null);
+        foreach(var binaryProperty in binaryProperties)
+        {
+            Type propertyType = binaryProperty.PropertyType;
+            if (propertyType.IsArray)
+            {
+                codeStr.Append(DeserializeArrayField(binaryProperty.Name, propertyType.GetElementType()));
+            }
+            else if (typeof(IList).IsAssignableFrom(propertyType))
+            {
+                codeStr.Append(DeserializeListField(binaryProperty.Name, propertyType.GetGenericArguments()[0]));
+            }
+            else
+            {
+                codeStr.Append(DeserializeSingleField(binaryProperty.Name, propertyType));
+            }
+        }
+
         codeStr.Append("\t}\n\n");
 
         codeStr.Append(UnityEditorMacro);
@@ -375,17 +408,35 @@ public class SerializationCodeGenerate
             Type fieldType = binaryField.FieldType;
             if (fieldType.IsArray)
             {
-                codeStr.Append(SerializeArrayField(binaryField.Name, binaryField.FieldType.GetElementType()));
+                codeStr.Append(SerializeArrayField(binaryField.Name, fieldType.GetElementType()));
             }
             else if (typeof(IList).IsAssignableFrom(fieldType))
             {
-                codeStr.Append(SerializeListField(binaryField.Name, binaryField.FieldType.GetGenericArguments()[0]));
+                codeStr.Append(SerializeListField(binaryField.Name, fieldType.GetGenericArguments()[0]));
             }
             else
             {
                 codeStr.Append(SerializeSingleField(binaryField.Name, fieldType));
             }
         }
+
+        foreach (var binaryProperty in binaryProperties)
+        {
+            Type propertyType = binaryProperty.PropertyType;
+            if (propertyType.IsArray)
+            {
+                codeStr.Append(SerializeArrayField(binaryProperty.Name, propertyType.GetElementType()));
+            }
+            else if (typeof(IList).IsAssignableFrom(propertyType))
+            {
+                codeStr.Append(SerializeListField(binaryProperty.Name, propertyType.GetGenericArguments()[0]));
+            }
+            else
+            {
+                codeStr.Append(SerializeSingleField(binaryProperty.Name, propertyType));
+            }
+        }
+
         codeStr.Append("\t}\n");
         codeStr.Append(EndIfMacro);
         return codeStr.ToString();
@@ -500,6 +551,10 @@ public class SerializationCodeGenerate
         {
             return string.Format(DeserializeVector2FieldStr, name);
         }
+        else if(fieldType == typeof(Quaternion))
+        {
+            return string.Format(DeserializeQuaternionFieldStr, name);
+        }
         else if (fieldType.IsEnum)
         {
             return string.Format(DeserializeEnumFieldStr, name, fieldType.Name);
@@ -543,6 +598,10 @@ public class SerializationCodeGenerate
         else if(fieldType == typeof(Vector3) || fieldType == typeof(Vector2))
         {
             return string.Format(SerializeVectorTypeFieldStr, name);
+        }
+        else if(fieldType == typeof(Quaternion))
+        {
+            return string.Format(SerializeQuaternionTypeFieldStr, name);
         }
         else if (fieldType.IsEnum)
         {

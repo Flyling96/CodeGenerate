@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
@@ -19,10 +18,10 @@ public partial class BaseArea: ISerialization
 	public virtual void Serialize(BinaryWriter writer)
 	{
 		int version = 10000;
-		SerializationCodeVersionAsset.TypeInfo versionList;
-		if (SerializationCodeVersionAsset.Instance.m_SerializationCodeVersionDic.TryGetValue(GetType().FullName,out versionList))
+		SerializationCodeVersionAsset.TypeInfo typeInfo;
+		if(SerializationCodeVersionAsset.Instance.m_SerializationCodeVersionDic.TryGetValue(GetType().FullName,out typeInfo))
 		{
-			version = versionList.m_SerializationVersions[versionList.m_SerializationVersions.Count - 1].m_Version;
+			version = typeInfo.m_SerializationVersions[typeInfo.m_SerializationVersions.Count - 1].m_Version;
 		}
 		writer.Write(version);
 		switch(version)

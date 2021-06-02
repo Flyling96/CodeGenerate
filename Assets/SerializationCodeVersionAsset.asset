@@ -15,12 +15,21 @@ MonoBehaviour:
   m_SerializationCodeVersionDic:
     m_Keys:
     - AreaShape
-    - BaseArea
     - SpecialArea
+    - BaseArea
     m_Values:
-    - m_SerializationVersions: []
-      m_ResetVarialbleNames: m_Type;m_Center
-    - m_SerializationVersions: []
+    - m_SerializationVersions:
+      - m_Version: 10000
+        m_VariableNames: m_Type;m_Center
+        m_VariableTypes: AreaShape+ShapeType;UnityEngine.Vector3
+      m_ResetVarialbleNames: m_Type;m_Center;m_Type;m_Center
+    - m_SerializationVersions:
+      - m_Version: 10000
+        m_VariableNames: temp;QuaternionTest
+        m_VariableTypes: System.Int32;UnityEngine.Quaternion
+      m_ResetVarialbleNames: AreaIDs;AreaIDs
+    - m_SerializationVersions:
+      - m_Version: 10000
+        m_VariableNames: m_Shape
+        m_VariableTypes: AreaShape
       m_ResetVarialbleNames: 
-    - m_SerializationVersions: []
-      m_ResetVarialbleNames: AreaIDs

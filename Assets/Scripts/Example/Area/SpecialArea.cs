@@ -8,6 +8,22 @@ public partial class SpecialArea : BaseArea
     [CanReset]
     int[] AreaIDs = new int[10];
 
-    [BinarySerializedField]
+    [BinarySerialized]
     int temp = 2;
+
+    Quaternion m_QuaternionTest;
+
+    [CanReset]
+    [BinarySerialized]
+    public Quaternion QuaternionTest
+    {
+        get
+        {
+            return m_QuaternionTest;
+        }
+        set
+        {
+            m_QuaternionTest = value;
+        }
+    }
 }
