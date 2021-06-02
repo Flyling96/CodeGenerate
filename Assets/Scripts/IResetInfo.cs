@@ -12,5 +12,5 @@ public interface IResetInfo
 
     void RecordInfos();
 
-    void ResetInfos();
+    int ResetInfos();
 }

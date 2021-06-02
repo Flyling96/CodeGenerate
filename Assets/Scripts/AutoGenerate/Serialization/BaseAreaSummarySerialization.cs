@@ -11,6 +11,7 @@ public partial class BaseArea: ISerialization
 		switch(version)
 		{
 			case 10000:Deserialize_10000(reader);break;
+			case 10001:Deserialize_10001(reader);break;
 		}
 	}
 
@@ -27,6 +28,7 @@ public partial class BaseArea: ISerialization
 		switch(version)
 		{
 			case 10000:Serialize_10000(writer);break;
+			case 10001:Serialize_10001(writer);break;
 		}
 	}
 

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-public partial class SpecialArea: IResetInfo
+public partial class SpecialArea
 {
 	private List<object> m_InitInfos = new List<object>();
 	public List<object> InitInfos
@@ -11,18 +11,20 @@ public partial class SpecialArea: IResetInfo
 		get{  return m_InitInfos; }
 	}
 
-	public void RecordInfos()
+	public override void RecordInfos()
 	{
+		base.RecordInfos();
 		m_InitInfos.Clear();
-		m_InitInfos.Capacity = 1;
 		m_InitInfos.Add(AreaIDs);
 		m_InitInfos.Add(QuaternionTest);
 	}
 
-	public void ResetInfos()
+	public override int ResetInfos()
 	{
-		AreaIDs = (Int32[])m_InitInfos[0];
-		QuaternionTest = (Quaternion)m_InitInfos[1];
+		int index = base.ResetInfos();
+		AreaIDs = (Int32[])m_InitInfos[index++];
+		QuaternionTest = (Quaternion)m_InitInfos[index++];
+		return index;
 	}
 
 }

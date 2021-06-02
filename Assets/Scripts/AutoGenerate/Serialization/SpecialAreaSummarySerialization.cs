@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-public partial class SpecialArea: ISerialization
+public partial class SpecialArea
 {
 	public override void Deserialize(BinaryReader reader)
 	{

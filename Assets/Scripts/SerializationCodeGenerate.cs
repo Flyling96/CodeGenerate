@@ -24,7 +24,8 @@ public class SerializationCodeGenerate
     "using UnityEngine;\n";
 
     const string ClassTitle = "public partial class {0}\n";
-    const string SerializationClassTitle = "public partial class {0}: ISerialization\n";
+    const string SerializationBaseClassTitle = "public partial class {0}: ISerialization\n";
+    const string SerializationClassTitle = "public partial class {0}\n";
 
     const string DeserializeFunctionTitle = "\tprivate void Deserialize_{0}(BinaryReader reader)";
     const string DeserializeSummaryFunctionTitle = "\tpublic {0} void Deserialize(BinaryReader reader)";
@@ -181,6 +182,10 @@ public class SerializationCodeGenerate
                 for (int i = 0; i < preVariableNames.Length; i++)
                 {
                     var preFieldName = preVariableNames[i];
+                    if(string.IsNullOrEmpty(preFieldName))
+                    {
+                        continue;
+                    }
                     if (!nowVariableNames.Contains(preFieldName))
                     {
                         var preFieldType = preVariableTypes[i];
@@ -292,9 +297,15 @@ public class SerializationCodeGenerate
         }
 
         string variableNameStr = variableNames.ToString();
-        variableNameStr = variableNameStr.Remove(variableNameStr.Length - 1);
+        if (variableNameStr.Length > 0)
+        {
+            variableNameStr = variableNameStr.Remove(variableNameStr.Length - 1);
+        }
         string variableTypeStr = variableTypes.ToString();
-        variableTypeStr = variableTypeStr.Remove(variableTypeStr.Length - 1);
+        if (variableNameStr.Length > 0)
+        {
+            variableTypeStr = variableTypeStr.Remove(variableTypeStr.Length - 1);
+        }
 
         int versionIndex = 10000;
         bool needNew = false;
@@ -451,7 +462,15 @@ public class SerializationCodeGenerate
         codeStr.Append(HeadStr);
         codeStr.Append("\n");
 
-        codeStr.Append(string.Format(SerializationClassTitle, classType.Name));
+        if (isBaseClass)
+        {
+            codeStr.Append(string.Format(SerializationBaseClassTitle, classType.Name));
+        }
+        else
+        {
+            codeStr.Append(string.Format(SerializationClassTitle, classType.Name));
+        }
+
         codeStr.Append("{\n");
 
         codeStr.Append(string.Format(DeserializeSummaryFunctionTitle, isBaseClass ? VirtualStr : OverrideStr));

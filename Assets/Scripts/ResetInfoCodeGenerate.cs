@@ -20,18 +20,22 @@ public class ResetInfoCodeGenerate
     "using System.IO;\n" +
     "using UnityEngine;\n";
 
-    const string ClassTitle = "public partial class {0}: IResetInfo\n" +
-        "{{\n{1}}}\n";
+    const string BaseClassTitle = "public partial class {0}: IResetInfo\n{{\n{1}}}\n";
+    const string ClassTitle = "public partial class {0}\n{{\n{1}}}\n";
 
     const string PrivateInitInfosField = "\tprivate List<object> m_InitInfos = new List<object>();\n";
     const string InitInfosProperty = "\tpublic List<object> InitInfos\n\t{\n\t\t" +
         "get{  return m_InitInfos; }\n\t}\n\n";
 
-    const string RecordInfoFunctionTitle = "\tpublic void RecordInfos()\n";
-    const string RecordInfoInitInfosStr = "\t\tm_InitInfos.Clear();\n\t\tm_InitInfos.Capacity = {0};\n";
+    const string RecordInfoFunctionTitle = "\tpublic {0} void RecordInfos()\n";
+    const string RecordInfoBaseStr = "\t\tbase.RecordInfos();\n";
+    const string RecordInfoInitInfosStr = "\t\tm_InitInfos.Clear();\n";
     const string RecordInfoSingleStr = "\t\tm_InitInfos.Add({0});\n";
-    const string ResetInfoFunctionTitle = "\tpublic void ResetInfos()\n";
-    const string ResetInfoSingleStr = "\t\t{0} = ({1})m_InitInfos[{2}];\n";
+    const string ResetInfoFunctionTitle = "\tpublic {0} int ResetInfos()\n";
+    const string ResetInfoInitIndexStr = "\t\tint index = 0;\n";
+    const string ResetInfoBaseStr = "\t\tint index = base.ResetInfos();\n";
+    const string ResetInfoSingleStr = "\t\t{0} = ({1})m_InitInfos[index++];\n";
+    const string ResetInfoReturnStr = "\t\treturn index;\n";
 
     [MenuItem("GenerateCode/ResetInfo")]
     public static void GenerateCode()
@@ -57,7 +61,10 @@ public class ResetInfoCodeGenerate
             {
                 Directory.CreateDirectory(dicPath);
             }
-            string classCode = string.Format("{0}\n{1}", HeadStr, ClassTitle);
+
+            Type baseType = classType.BaseType;
+            bool isBaseClass = baseType == null || baseType.GetCustomAttribute(typeof(BinarySerializedClassAttribute)) == null;
+            string classCode = string.Format("{0}\n{1}", HeadStr, isBaseClass?BaseClassTitle:ClassTitle);
             string functionCode = GenerateResetInfoFunctionCode(classType);
             classCode = string.Format(classCode, classType.Name,functionCode);
             string path = string.Format("{0}{1}{2}{3}.cs", Application.dataPath, SavePath, classType.Name, "ResetInfo");
@@ -73,6 +80,7 @@ public class ResetInfoCodeGenerate
 
     private static bool CheckVersion(Type classType)
     {
+        bool isBaseClass = classType.BaseType == null || classType.BaseType.GetCustomAttribute(typeof(BinarySerializedClassAttribute)) == null;
         SerializationCodeVersionAsset.TypeInfo typeInfo;
         var dic = SerializationCodeVersionAsset.Instance.m_SerializationCodeVersionDic;
         var resetInfoFields = classType.GetFields(BindingFlags.DeclaredOnly | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public)
@@ -81,7 +89,7 @@ public class ResetInfoCodeGenerate
         var resetInfoProperties = classType.GetFields(BindingFlags.DeclaredOnly | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public)
             .Where(x => x.GetCustomAttribute(typeof(CanResetAttribute)) != null);
 
-        if (resetInfoFields.Count() < 1 && resetInfoProperties.Count() < 1)
+        if (resetInfoFields.Count() < 1 && resetInfoProperties.Count() < 1 && !isBaseClass)
         {
             return false;
         }
@@ -100,7 +108,10 @@ public class ResetInfoCodeGenerate
         }
 
         string resetVariableNamesStr = resetVariableNames.ToString();
-        resetVariableNamesStr = resetVariableNamesStr.Remove(resetVariableNamesStr.Length - 1);
+        if (resetVariableNamesStr.Length > 0)
+        {
+            resetVariableNamesStr = resetVariableNamesStr.Remove(resetVariableNamesStr.Length - 1);
+        }
 
         if (dic.TryGetValue(classType.FullName, out typeInfo))
         {
@@ -110,6 +121,17 @@ public class ResetInfoCodeGenerate
                 EditorUtility.SetDirty(SerializationCodeVersionAsset.Instance);
                 AssetDatabase.SaveAssets();
                 return true;
+            }
+            else
+            {
+                if (isBaseClass)
+                {
+                    string path = string.Format("{0}{1}{2}{3}.cs", Application.dataPath, SavePath, classType.Name, "ResetInfo");
+                    if(!File.Exists(path))
+                    {
+                        return true;
+                    }
+                }
             }
         }
         else
@@ -131,6 +153,7 @@ public class ResetInfoCodeGenerate
     {
         StringBuilder codeStr = new StringBuilder();
         Type baseType = classType.BaseType;
+        bool isBaseClass = baseType == null || baseType.GetCustomAttribute(typeof(BinarySerializedClassAttribute)) == null;
 
         var resetInfoFields = classType.GetFields(BindingFlags.DeclaredOnly | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public)
           .Where(x => x.GetCustomAttribute(typeof(CanResetAttribute)) != null);
@@ -140,9 +163,13 @@ public class ResetInfoCodeGenerate
         codeStr.Append(PrivateInitInfosField);
         codeStr.Append(InitInfosProperty);
 
-        codeStr.Append(RecordInfoFunctionTitle);
+        codeStr.Append(string.Format(RecordInfoFunctionTitle, isBaseClass ? VirtualStr : OverrideStr));
         codeStr.Append("\t{\n");
 
+        if(!isBaseClass)
+        {
+            codeStr.Append(RecordInfoBaseStr);
+        }
         codeStr.Append(string.Format(RecordInfoInitInfosStr, resetInfoFields.Count()));
         foreach(var resetInfoField in resetInfoFields)
         {
@@ -156,19 +183,29 @@ public class ResetInfoCodeGenerate
 
         codeStr.Append("\t}\n\n");
 
-        codeStr.Append(ResetInfoFunctionTitle);
+        codeStr.Append(string.Format(ResetInfoFunctionTitle,isBaseClass?VirtualStr:OverrideStr));
         codeStr.Append("\t{\n");
-        int index = 0;
+
+        if (isBaseClass)
+        {
+            codeStr.Append(ResetInfoInitIndexStr);
+        }
+        else
+        {
+            codeStr.Append(ResetInfoBaseStr);
+        }
+
         foreach (var resetInfoField in resetInfoFields)
         {
-            codeStr.Append(string.Format(ResetInfoSingleStr, resetInfoField.Name, resetInfoField.FieldType.Name, index++));
+            codeStr.Append(string.Format(ResetInfoSingleStr, resetInfoField.Name, resetInfoField.FieldType.Name));
         }
 
         foreach (var resetInfoProperty in resetInfoProperties)
         {
-            codeStr.Append(string.Format(ResetInfoSingleStr, resetInfoProperty.Name, resetInfoProperty.PropertyType.Name, index++));
+            codeStr.Append(string.Format(ResetInfoSingleStr, resetInfoProperty.Name, resetInfoProperty.PropertyType.Name));
         }
 
+        codeStr.Append(ResetInfoReturnStr);
         codeStr.Append("\t}\n\n");
         return codeStr.ToString();
     }
