@@ -66,7 +66,7 @@ public class ResetInfoCodeGenerate
             bool isBaseClass = baseType == null || baseType.GetCustomAttribute(typeof(BinarySerializedClassAttribute)) == null;
             string classCode = string.Format("{0}\n{1}", HeadStr, isBaseClass?BaseClassTitle:ClassTitle);
             string functionCode = GenerateResetInfoFunctionCode(classType);
-            classCode = string.Format(classCode, classType.Name,functionCode);
+            classCode = string.Format(classCode,SerializationCodeGenerate.GetClassName(classType), functionCode);
             string path = string.Format("{0}{1}{2}{3}.cs", Application.dataPath, SavePath, classType.Name, "ResetInfo");
 
             using (FileStream fileStream = new FileStream(path,FileMode.OpenOrCreate))
@@ -86,7 +86,7 @@ public class ResetInfoCodeGenerate
         var resetInfoFields = classType.GetFields(BindingFlags.DeclaredOnly | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public)
             .Where(x => x.GetCustomAttribute(typeof(CanResetAttribute)) != null);
 
-        var resetInfoProperties = classType.GetFields(BindingFlags.DeclaredOnly | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public)
+        var resetInfoProperties = classType.GetProperties(BindingFlags.DeclaredOnly | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public)
             .Where(x => x.GetCustomAttribute(typeof(CanResetAttribute)) != null);
 
         if (resetInfoFields.Count() < 1 && resetInfoProperties.Count() < 1 && !isBaseClass)

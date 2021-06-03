@@ -134,7 +134,7 @@ public class SerializationCodeGenerate
             }
             else
             {
-                string classTitle = string.Format(ClassTitle, classType.Name);
+                string classTitle = string.Format(ClassTitle, GetClassName(classType));
                 classCode = string.Format("{0}\n{1}{{\n{2}}}\n\n", HeadStr, classTitle, classCode);
                 using (FileStream fileStream = new FileStream(path, FileMode.OpenOrCreate))
                 {
@@ -363,6 +363,44 @@ public class SerializationCodeGenerate
 
     }
 
+    public static string GetClassName(Type classType)
+    {
+        if(classType.IsGenericTypeDefinition)
+        {
+            string className = classType.Name;
+            string[] names = className.Split('`');
+            if(names.Length < 2)
+            {
+                return className;
+            }
+
+            className = names[0];
+            var paramNames = classType.GetGenericArguments().Select(x => x.Name);
+
+            StringBuilder paramBuilder = new StringBuilder();
+            int index = 0;
+            foreach(var paramName in paramNames)
+            {
+                if(index == 0)
+                {
+                    paramBuilder.Append(paramName);
+                }
+                else
+                {
+                    paramBuilder.Append(string.Format(",{0}", paramName));
+                }
+                index++;
+            }
+
+            className = string.Format("{0}<{1}>", className, paramBuilder.ToString());
+            return className;
+        }
+        else
+        {
+            return classType.Name;
+        }
+    }
+
     private static string GenerateSerializationFunctionCode(Type classType,int version)
     {
         StringBuilder codeStr = new StringBuilder();
@@ -464,11 +502,11 @@ public class SerializationCodeGenerate
 
         if (isBaseClass)
         {
-            codeStr.Append(string.Format(SerializationBaseClassTitle, classType.Name));
+            codeStr.Append(string.Format(SerializationBaseClassTitle, GetClassName(classType)));
         }
         else
         {
-            codeStr.Append(string.Format(SerializationClassTitle, classType.Name));
+            codeStr.Append(string.Format(SerializationClassTitle, GetClassName(classType)));
         }
 
         codeStr.Append("{\n");
